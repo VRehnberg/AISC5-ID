@@ -1,12 +1,14 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
+import seaborn as sns
+from tqdm.auto import tqdm, trange
 
 from twonn_dimension import twonn_dimension
 
 def get_parabolic_data(
     n_data,
-    eps=0.01,
+    eps=0.0,
     random_state=np.random,
 ):
     x = 3 * random_state.rand(100) - 1
@@ -16,39 +18,59 @@ def get_parabolic_data(
 
     return data
 
+def evaluate(
+    estimate_id,
+    get_data,
+):
+    # Initialize dataframe
+    xlabel = "Dataset size"
+    ylabel = "Intrinsic dimension"
+    plot_data = pd.DataFrame()
 
-def main():
-    
-    n_experiments = 100
-    n_data_vec = np.rint(np.logspace(1, 5, 17)).astype(int)
-
-    id_mean = np.zeros_like(n_data_vec)
-    id_95ci = np.zeros([2, id_mean.size])
+    # Loop data
+    n_experiments = 1000
+    n_data_vec = np.rint(np.logspace(1, 5, 5)).astype(int)
 
     for i_n_data, n_data in enumerate(tqdm(n_data_vec)):
 
-        id_tmp = np.zeros(n_experiments)
+        # Initialize values to put in dataframe
+        n_data_dist = np.log10(np.full(n_experiments, n_data))
+        id_dist = np.zeros(n_experiments)
 
-        for i_exp in range(n_experiments):
+        for i_exp in trange(n_experiments, desc=f"{n_data}"):
 
-            data = get_parabolic_data(n_data)
-            id_tmp[i_exp] = twonn_dimension(data)
+            # Get data and estimate intrinsic dimension
+            data = get_data(n_data)
+            id_dist[i_exp] = estimate_id(data)
 
-        id_mean[i_n_data] = np.mean(id_tmp)
-        id_95ci[:, i_n_data] = np.quantile(id_tmp, [0.025, 0.975])
+        # Add data to dataframe
+        plot_data = plot_data.append(pd.DataFrame({
+            xlabel: n_data_dist,
+            ylabel: id_dist,
+        }))
 
+
+    # Plot distributions of ID
     fig, ax = plt.subplots()
-    ax.errorbar(
-        x=n_data_vec,
-        y=id_mean,
-        yerr=id_95ci,
-        fmt='.-',
-        capsize=2,
+    sns.violinplot(
+        ax=ax,
+        x=xlabel,
+        y=ylabel,
+        data=plot_data,
     )
 
-    ax.set_xscale("log")
-    ax.set_xlabel("\#data points")
-    ax.set_ylabel("ID estimate")
+    xticks = np.log10(n_data_vec)
+    ax.set_xticks(xticks-1)
+    ax.set_xticklabels([f"$10^{int(x):d}$" for x in xticks])
+
+    return fig, ax
+
+def main():
+    
+    evaluate(
+        estimate_id=twonn_dimension,
+        get_data=get_parabolic_data,
+    )
 
     plt.show()
 
