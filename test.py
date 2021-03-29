@@ -1,22 +1,19 @@
+import torch
 import numpy as np
-import pandas as pd
+#import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+#import seaborn as sns
 from tqdm.auto import tqdm, trange
 
+from datagen import get_parabolic_data
+from gan import train_gan
 from twonn_dimension import twonn_dimension
 
-def get_parabolic_data(
-    n_data,
-    eps=0.0,
-    random_state=np.random,
-):
-    x = 3 * random_state.rand(100) - 1
-    y = x**2 + eps * random_state.randn(*x.shape)
+SEED = np.random.randint(1000)
+print(f"Running with seed {SEED}")
+np.random.seed(SEED)
+torch.manual_seed(SEED)
 
-    data = np.vstack([x, y]).T
-
-    return data
 
 def evaluate(
     estimate_id,
@@ -66,11 +63,15 @@ def evaluate(
     return fig, ax
 
 def main():
-    
-    evaluate(
-        estimate_id=twonn_dimension,
-        get_data=get_parabolic_data,
-    )
+
+    data = torch.Tensor(get_parabolic_data(100))
+    # TODO plot loss
+    discr, gener = train_gan(data)
+
+#     evaluate(
+#         estimate_id=twonn_dimension,
+#         get_data=get_parabolic_data,
+#     )
 
     plt.show()
 
