@@ -64,6 +64,7 @@ class Generator(nn.Module):
         gener_x = self.generate_x(gener_input)
         return gener_input, gener_x
 
+
 # TODO give discriminator access to activations?
 class Discriminator(nn.Module):
     
@@ -105,7 +106,7 @@ def train_gan(data):
     data_input_dim = data_input.shape[1]
 
     # Initialize generator
-    gener_input_dim = 2
+    gener_input_dim = 32
     gener_output_dim = data_input_dim
       
     gener = Generator(
@@ -144,6 +145,7 @@ def train_gan(data):
 
     previous_patches = []
     def update_plot():
+        return # TODO
         nonlocal previous_patches
         nonlocal gener
         nonlocal discr
@@ -180,7 +182,7 @@ def train_gan(data):
 
     update_plot()
 
-    n_epochs = 100000
+    n_epochs = 1000
     pbar = tqdm(total=n_epochs)
     for i_epoch in range(n_epochs):
 
@@ -215,7 +217,20 @@ def train_gan(data):
             plt.pause(0.0001)
             update_plot()
 
+    def function(x):#TODO replace with more complex
+        x = gener(x)
+        return torch.hstack([x, x**2])
+    
     pbar.close()
+
+    gener_input, gener_x = gener.generate_data(1)
+    jac = torch.autograd.functional.jacobian(
+        func=function,
+        inputs=gener_input.flatten(),
+        create_graph=False,
+    )
+    #print(jac)
+    print(torch.matrix_rank(jac))
 
     return discr, gener
     
