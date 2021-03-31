@@ -68,6 +68,13 @@ def main():
     # TODO plot loss
     discr, gener = train_gan(data)
 
+    # Calculate intrinsic dimension of simple function
+    def function(x):#TODO replace with more complex
+        return torch.hstack([x, x**2, torch.sin(x)])
+    
+    intrinsic_dim = gener.get_intrinsic_dimension(function)
+    print(f"Intrinsic dimension is {intrinsic_dim}")
+
 #     evaluate(
 #         estimate_id=twonn_dimension,
 #         get_data=get_parabolic_data,
