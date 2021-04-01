@@ -5,9 +5,14 @@ import matplotlib.pyplot as plt
 #import seaborn as sns
 from tqdm.auto import tqdm, trange
 
-from datagen import get_parabolic_data
+from datagen import (
+    get_parabolic_data,
+    get_circle_data,
+    get_plane_data,
+)
 from gan import train_gan
 from twonn_dimension import twonn_dimension
+from models import ProjectionFunction
 
 SEED = np.random.randint(1000)
 print(f"Running with seed {SEED}")
@@ -62,8 +67,38 @@ def evaluate(
 
     return fig, ax
 
+def get_jacobian(generator, function, create_graph=False):
+    def combined_function(gener_input):
+        return function(generator.forward(gener_input))
+
+    gener_input = generator.generate_generator_input(1)
+    jac = torch.autograd.functional.jacobian(
+        func=combined_function,
+        inputs=gener_input,#.flatten(),
+        create_graph=create_graph,
+    )
+    return jac
+
 def main():
 
+    # Projection
+    n_data = 100
+    circle_input, _ = get_circle_data(n_data)
+    plane_input, _ = get_plane_data(n_data)
+
+    projection_input = torch.hstack([circle_input, plane_input])
+
+    discr, gener = train_gan(projection_input)
+
+    func = torch.nn.Identity()
+    get_jacobian(gener, func)
+
+    func = ProjectionFunction()
+    get_jacobian(gener, func)
+
+
+    # 
+    return
     data = torch.Tensor(get_parabolic_data(100))
     # TODO plot loss
     discr, gener = train_gan(data)

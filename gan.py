@@ -26,7 +26,7 @@ class Generator(nn.Module):
         self.input_dim = generator_input_dim
 
         # TODO experiment architecture
-        hidden_output_dims = [32]
+        hidden_output_dims = [8, 8, 8]
         hidden_input_dims = [
             generator_input_dim,
             *hidden_output_dims[:-1],
@@ -97,7 +97,7 @@ class Discriminator(nn.Module):
         super().__init__()
 
         # TODO experiment architecture
-        hidden_output_dims = [32]
+        hidden_output_dims = [8, 8, 8]
         hidden_input_dims = [
             input_dim,
             *hidden_output_dims[:-1],
@@ -122,16 +122,13 @@ class Discriminator(nn.Module):
         x = self.output_layer(x)
         return self.output_activation(x)
 
-def train_gan(data, plot=False):
+def train_gan(data_input, plot=False):
 
     # Load data
-    n_data = data.shape[0]
-    data_input = data[:, 0:1]
-    data_output = data[:, 1:]
-    data_input_dim = data_input.shape[1]
+    n_data, data_input_dim = data_input.shape
 
     # Initialize generator
-    gener_input_dim = 32
+    gener_input_dim = 6
     gener_output_dim = data_input_dim
       
     gener = Generator(
@@ -146,7 +143,7 @@ def train_gan(data, plot=False):
     # Define loss and optimizer TODO experiment
     loss_function = nn.BCELoss()
     lr = 0.02
-    opt = optim.SGD([
+    opt = optim.Adam([
         {"params" : gener.parameters(), "lr" : -lr},
         {"params" : discr.parameters(), "lr" : lr},
     ])
@@ -165,7 +162,7 @@ def train_gan(data, plot=False):
             cumulative=True,
         ) 
         ax.hist(
-            data.detach().numpy()[:, 0],
+            data_input.detach().numpy(),
             **hist_kwargs,
             ec="blue",
             label="True",
@@ -234,8 +231,8 @@ def train_gan(data, plot=False):
         # Build discriminator data
         discr_input = torch.vstack([data_input, gener_output])
         discr_label = torch.vstack([
-            torch.ones_like(data_input),
-            torch.zeros_like(gener_output),
+            torch.ones(n_data, 1),
+            torch.zeros(n_data, 1),
         ])
 
         # Calculate loss
