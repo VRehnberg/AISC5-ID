@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch import optim
-from tqdm.auto import tqdm
+from tqdm import tqdm
 
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -26,7 +26,7 @@ class Generator(nn.Module):
         self.input_dim = generator_input_dim
 
         # TODO experiment architecture
-        hidden_output_dims = [8, 8, 8]
+        hidden_output_dims = [20, 20, 20]
         hidden_input_dims = [
             generator_input_dim,
             *hidden_output_dims[:-1],
@@ -128,7 +128,7 @@ def train_gan(data_input, plot=False):
     n_data, data_input_dim = data_input.shape
 
     # Initialize generator
-    gener_input_dim = 6
+    gener_input_dim = 10
     gener_output_dim = data_input_dim
       
     gener = Generator(

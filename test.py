@@ -3,7 +3,7 @@ import numpy as np
 #import pandas as pd
 import matplotlib.pyplot as plt
 #import seaborn as sns
-from tqdm.auto import tqdm, trange
+from tqdm import tqdm, trange
 
 from datagen import (
     get_parabolic_data,

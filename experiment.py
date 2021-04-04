@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+## In[1]:
 
 
 import pdb
@@ -10,7 +10,7 @@ import numpy as np
 #import pandas as pd
 import matplotlib.pyplot as plt
 #import seaborn as sns
-from tqdm.auto import tqdm, trange
+from tqdm import tqdm, trange
 
 from datagen import *
 from gan import train_gan
@@ -27,7 +27,7 @@ get_ipython().run_line_magic('pdb', 'off')
 get_ipython().run_line_magic('matplotlib', 'inline')
 
 
-# In[2]:
+## In[2]:
 
 
 def get_jacobian(inputs, function, create_graph=False):
@@ -35,11 +35,11 @@ def get_jacobian(inputs, function, create_graph=False):
         func=function,
         inputs=inputs,
         create_graph=create_graph,
-    ).squeeze()
+    )
     return jac
 
 
-# In[3]:
+## In[3]:
 
 
 # Projection
@@ -52,24 +52,33 @@ projection_input = torch.hstack([circle_input, plane_input])
 discr, gener = train_gan(projection_input)
 
 
-# In[4]:
+## In[4]:
 
 
 inputs = gener.generate_generator_input(1)
-func = gener
-get_jacobian(inputs, func)
+def func(x):
+    activations = []
+    def hook(module, input, output):
+        activations.append(output)
+    torch.nn.modules.module.register_module_forward_hook(hook)
+    gener(x)
+    return tuple(activations)
+
+#pdb.set_trace()
+jac = get_jacobian(inputs, func)
 
 
-# In[5]:
+## In[5]:
+
+get_rank = lambda x: int(torch.matrix_rank(x.squeeze()))
+ranks = list(map(get_rank, jac))
+print("Ranks:", *ranks)
 
 
-torch.matrix_rank(_)
-
-
-# In[6]:
+## In[6]:
 
 
 inputs = gener.generate_generator_input(1)
-func = lambda x: ProjectionFunction(gener(x))
+func = lambda x: ProjectionFunction()(gener(x))
 get_jacobian(inputs, func)
 
