@@ -20,13 +20,18 @@ def prepare_animation(bar_container):
 
 class Generator(nn.Module):
 
-    def __init__(self, generator_input_dim, generator_output_dim):
+    def __init__(
+        self,
+        generator_input_dim,
+        generator_output_dim,
+        hidden_output_dims=[8, 8, 8],
+        activation_function=nn.ReLU,
+    ):
         super().__init__()
 
         self.input_dim = generator_input_dim
 
         # TODO experiment architecture
-        hidden_output_dims = [20, 20, 20]
         hidden_input_dims = [
             generator_input_dim,
             *hidden_output_dims[:-1],
@@ -39,7 +44,7 @@ class Generator(nn.Module):
             )
             for layer in [
                 nn.Linear(hd_in, hd_out),
-                nn.ReLU(),
+                activation_function(),
             ]
         ]
         self.output_layer = nn.Linear(
@@ -93,11 +98,15 @@ class Generator(nn.Module):
 # TODO give discriminator access to activations?
 class Discriminator(nn.Module):
     
-    def __init__(self, input_dim):
+    def __init__(
+        self,
+        input_dim,
+        hidden_output_dims=[8, 8, 8],
+        activation_function=nn.ReLU,
+    ):
         super().__init__()
 
         # TODO experiment architecture
-        hidden_output_dims = [8, 8, 8]
         hidden_input_dims = [
             input_dim,
             *hidden_output_dims[:-1],
@@ -110,7 +119,7 @@ class Discriminator(nn.Module):
             )
             for layer in [
                 nn.Linear(hd_in, hd_out),
-                nn.ReLU(),
+                activation_function(),
             ]
         ]
         self.output_layer = nn.Linear(hidden_output_dims[-1], 1)
@@ -122,7 +131,13 @@ class Discriminator(nn.Module):
         x = self.output_layer(x)
         return self.output_activation(x)
 
-def train_gan(data_input, plot=False):
+def train_gan(
+    data_input,
+    n_epochs=1000,
+    plot=False,
+    generator_kwargs={},
+    discriminator_kwargs={},
+):
 
     # Load data
     n_data, data_input_dim = data_input.shape
@@ -134,11 +149,12 @@ def train_gan(data_input, plot=False):
     gener = Generator(
         generator_input_dim=gener_input_dim,
         generator_output_dim=gener_output_dim,
+        **generator_kwargs,
     )
 
     # Initialize discriminator
     discr_input_dim = gener_output_dim
-    discr = Discriminator(discr_input_dim)
+    discr = Discriminator(discr_input_dim, **discriminator_kwargs)
 
     # Define loss and optimizer TODO experiment
     loss_function = nn.BCELoss()
@@ -215,7 +231,6 @@ def train_gan(data_input, plot=False):
         init_plot()
         update_plot()
 
-    n_epochs = 1000
     pbar = tqdm(total=n_epochs)
     for i_epoch in range(n_epochs):
 
