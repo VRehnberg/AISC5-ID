@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 #import seaborn as sns
+from corner import corner
 from tqdm import tqdm, trange
 
 from datagen import *
@@ -43,8 +44,14 @@ plane_input, _ = get_plane_data(n_data)
 
 projection_input = torch.hstack([circle_input, plane_input])
 
-generator_kwargs = dict(activation_function=torch.nn.ReLU)
-discr, gener = train_gan(projection_input, plot=False)
+Activation = torch.nn.ReLU
+Optimizer = torch.optim.Adam
+generator_kwargs = dict(activation_function=Activation)
+discr, gener = train_gan(
+    projection_input,
+    plot=False,
+    Optimizer=Optimizer,
+)
 
 
 ## 
@@ -54,9 +61,19 @@ def func(x):
     activations = []
     def hook(module, input, output):
         activations.append(output)
-    torch.nn.modules.module.register_module_forward_hook(hook)
+    h = torch.nn.modules.module.register_module_forward_hook(hook)
     gener(x)
+    h.remove()
     return tuple(activations)
+
+def layer_names():
+    names = []
+    def hook(module, input, output):
+        names.append(type(module).__name__)
+    h = torch.nn.modules.module.register_module_forward_hook(hook)
+    gener.generate_data(1)
+    h.remove()
+    return names
 
 #pdb.set_trace()
 jac = get_jacobian(inputs=inputs, func=func)
@@ -65,16 +82,15 @@ jac = get_jacobian(inputs=inputs, func=func)
 ## Compute rank for input --> layer for layers
 
 ranks = list(map(get_rank, jac))
-print("Ranks:", *ranks)
+print("\nRanks:", *ranks)
 
 
 ## Estimate distribution of ID of generator output
 
-n_estimates = 100
+n_estimates = 1000
 rank_estimates = np.zeros([n_estimates, len(ranks)])
-for ix, x in enumerate(
-    tqdm(gener.generate_generator_input(n_estimates))
-):
+all_inputs = gener.generate_generator_input(n_estimates)
+for ix, x in enumerate(tqdm(all_inputs)):
     x = x.reshape(1, -1)
     jac = get_jacobian(inputs=x, func=func)
     rank_estimates[ix, :] =  list(map(get_rank, jac))
@@ -98,6 +114,23 @@ ax.add_collection(lines)
 
 ax.set_xlim([0, x.shape[1]])
 ax.set_ylim([0, rank_estimates.max()])
+
+file_specifier = f"_{Optimizer.__name__}_{Activation.__name__}"
+fig.tight_layout()
+fig.savefig(f"Figures/lines{file_specifier}.pdf", bbox_inches="tight")
+
+# Distribution
+corner_cols = np.arange(1, 7)
+corner_data = rank_estimates[:, corner_cols]
+corner_labels = np.array(layer_names())[corner_cols]
+fig = corner(
+    corner_data,
+    labels=corner_labels,
+    show_titles=True,
+)
+
+fig.tight_layout()
+fig.savefig(f"Figures/corner{file_specifier}.pdf", bbox_inches="tight")
 
 ## In[7]:
 

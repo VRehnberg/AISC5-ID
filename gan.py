@@ -25,7 +25,7 @@ class Generator(nn.Module):
         generator_input_dim,
         generator_output_dim,
         hidden_output_dims=[8, 8, 8],
-        activation_function=nn.ReLU,
+        Activation=nn.ReLU,
     ):
         super().__init__()
 
@@ -44,7 +44,7 @@ class Generator(nn.Module):
             )
             for layer in [
                 nn.Linear(hd_in, hd_out),
-                activation_function(),
+                Activation(),
             ]
         ]
         self.output_layer = nn.Linear(
@@ -102,7 +102,7 @@ class Discriminator(nn.Module):
         self,
         input_dim,
         hidden_output_dims=[8, 8, 8],
-        activation_function=nn.ReLU,
+        Activation=nn.ReLU,
     ):
         super().__init__()
 
@@ -119,7 +119,7 @@ class Discriminator(nn.Module):
             )
             for layer in [
                 nn.Linear(hd_in, hd_out),
-                activation_function(),
+                Activation(),
             ]
         ]
         self.output_layer = nn.Linear(hidden_output_dims[-1], 1)
@@ -135,6 +135,7 @@ def train_gan(
     data_input,
     n_epochs=1000,
     plot=False,
+    Optimizer=optim.Adam,
     generator_kwargs={},
     discriminator_kwargs={},
 ):
@@ -159,7 +160,7 @@ def train_gan(
     # Define loss and optimizer TODO experiment
     loss_function = nn.BCELoss()
     lr = 0.02
-    opt = optim.Adam([
+    opt = Optimizer([
         {"params" : gener.parameters(), "lr" : -lr},
         {"params" : discr.parameters(), "lr" : lr},
     ])
