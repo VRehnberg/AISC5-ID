@@ -1,8 +1,9 @@
+#!/usr/bin/env python
 import torch
 import numpy as np
-#import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
-#import seaborn as sns
+import seaborn as sns
 from tqdm import tqdm, trange
 
 from datagen import (
@@ -30,8 +31,8 @@ def evaluate(
     plot_data = pd.DataFrame()
 
     # Loop data
-    n_experiments = 1000
-    n_data_vec = np.rint(np.logspace(1, 5, 5)).astype(int)
+    n_experiments = 100
+    n_data_vec = np.rint(np.logspace(1, 3, 3)).astype(int)
 
     for i_n_data, n_data in enumerate(tqdm(n_data_vec)):
 
@@ -67,17 +68,7 @@ def evaluate(
 
     return fig, ax
 
-def get_jacobian(generator, function, create_graph=False):
-    def combined_function(gener_input):
-        return function(generator.forward(gener_input))
-
-    gener_input = generator.generate_generator_input(1)
-    jac = torch.autograd.functional.jacobian(
-        func=combined_function,
-        inputs=gener_input,#.flatten(),
-        create_graph=create_graph,
-    )
-    return jac
+get_jacobian = torch.autograd.functional.jacobian
 
 def main():
 
@@ -90,30 +81,20 @@ def main():
 
     discr, gener = train_gan(projection_input)
 
-    func = torch.nn.Identity()
-    get_jacobian(gener, func)
+    func = gener
+    inputs = gener.generate_generator_input(1)
+    jac = get_jacobian(func=func, inputs=inputs).squeeze()
+    print("Generator output ID is ", torch.matrix_rank(jac))
 
-    func = ProjectionFunction()
-    get_jacobian(gener, func)
+    proj_func = ProjectionFunction()
+    func = lambda x: proj_func(gener(x))
+    jac = get_jacobian(func=func, inputs=inputs).squeeze()
+    print("ANN output ID is ", torch.matrix_rank(jac))
 
-
-    # 
-    return
-    data = torch.Tensor(get_parabolic_data(100))
-    # TODO plot loss
-    discr, gener = train_gan(data)
-
-    # Calculate intrinsic dimension of simple function
-    def function(x):#TODO replace with more complex
-        return torch.hstack([x, x**2, torch.sin(x)])
-    
-    intrinsic_dim = gener.get_intrinsic_dimension(function)
-    print(f"Intrinsic dimension is {intrinsic_dim}")
-
-#     evaluate(
-#         estimate_id=twonn_dimension,
-#         get_data=get_parabolic_data,
-#     )
+    evaluate(
+        estimate_id=twonn_dimension,
+        get_data=lambda n: get_parabolic_data(n)[1],
+    )
 
     plt.show()
 
