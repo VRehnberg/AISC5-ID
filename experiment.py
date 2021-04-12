@@ -36,9 +36,11 @@ get_jacobian = torch.autograd.functional.jacobian
 
 get_rank = lambda x: int(torch.matrix_rank(x.squeeze()))
 
+get_twonn = lambda x: twonn_dimension(x.detach().numpy().squeeze())
+
 ## Train GAN
 
-n_data = 100
+n_data = 1000
 circle_input, _ = get_circle_data(n_data)
 plane_input, _ = get_plane_data(n_data)
 
@@ -94,9 +96,11 @@ for ix, x in enumerate(tqdm(all_inputs)):
     x = x.reshape(1, -1)
     jac = get_jacobian(inputs=x, func=func)
     rank_estimates[ix, :] =  list(map(get_rank, jac))
+twonn_estimates = list(map(get_twonn, func(all_inputs)))
 
 # Remove doublet of last layer
 rank_estimates = rank_estimates[:, :-1]
+twonn_estimates = twonn_estimates[:-1]
 
 # Plot lines
 fig, ax = plt.subplots()
@@ -109,11 +113,15 @@ lines = LineCollection(
     plot_data,
     colors="b",
     alpha=0.01,
+    label="Generetor",
 )
 ax.add_collection(lines)
 
-ax.set_xlim([0, x.shape[1]])
+ax.plot(x[0, :], twonn_estimates, "r", label="TwoNN")
+
+ax.autoscale(enable=True, axis='x', tight=True)
 ax.set_ylim([0, rank_estimates.max()])
+ax.legend()
 
 file_specifier = f"_{Optimizer.__name__}_{Activation.__name__}"
 fig.tight_layout()
